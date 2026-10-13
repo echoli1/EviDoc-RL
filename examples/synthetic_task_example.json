@@ -1,0 +1,19 @@
+{
+  "question": "What was the reported revenue in 2024?",
+  "candidates": [
+    {
+      "page_id": "page_a",
+      "ocr": "Annual report excerpt: revenue in 2023 was $8.4M."
+    },
+    {
+      "page_id": "page_b",
+      "ocr": "Annual report excerpt: revenue in 2024 was $9.1M."
+    }
+  ],
+  "gold_answer": "$9.1M",
+  "gold_evidence_page": "page_b",
+  "demo_prediction": {
+    "answer": "$9.1M",
+    "evidence_page": "page_b"
+  }
+}

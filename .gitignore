@@ -1,0 +1,21 @@
+# Upstream-derived private data
+/data/
+
+# Private experiment outputs. The sole public report is an aggregate without
+# task-linked source content; every generated report stays private by default.
+/outputs/
+/logs/
+/analysis/
+/checkpoints/
+/reports/*
+!/reports/v1_v2_aggregate_results.json
+
+# Model artifacts and generated caches
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.ckpt
+__pycache__/
+*.py[cod]
+.DS_Store

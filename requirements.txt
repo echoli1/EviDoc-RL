@@ -1,0 +1,13 @@
+# Tested on Python 3.12. Choose a platform-appropriate PyTorch wheel (CPU,
+# MPS, or CUDA) if pip cannot resolve torch/torchvision on your host.
+torch==2.7.1
+transformers==5.17.0
+trl==1.12.0
+peft==0.20.0
+accelerate==1.15.0
+datasets==5.0.1
+# Required indirectly when dataset-provided PIL page images are materialized.
+pillow==10.4.0
+# Retained from the validated Qwen3-VL runtime, including Transformers image utilities.
+torchvision==0.22.1
+rank-bm25==0.2.2

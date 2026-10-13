@@ -1,0 +1,157 @@
+{
+  "schema_version": "evidoc_rl_v1_v2_public_aggregate_v2",
+  "data_policy": "Aggregate metrics only. No upstream-derived task records, OCR, images, answers, page IDs, model completions, or checkpoints are redistributed.",
+  "scope": {
+    "private_development_context": "A private development harness supported retrieval, page opening, crop, OCR, and answer/evidence operations; it is not part of this public controlled-experiment release.",
+    "reported_v1_v2_policy": "Controlled answer/evidence JSON selection after a deterministic controller retrieves and OCRs all five candidates.",
+    "not_measured_by_v1_v2": [
+      "learned retrieval, open, crop, or OCR behavior",
+      "end-to-end visual document reasoning improvement",
+      "held-out-domain robustness"
+    ]
+  },
+  "source_data": {
+    "dataset": "nielsr/docvqa_1200_examples",
+    "revision": "dc77ab0c3d98855d0f3cb3a00832f2423fbe7528",
+    "official_source_splits": {
+      "post_training": "train",
+      "evaluation": "test"
+    }
+  },
+  "shared_training": {
+    "model": "Qwen3-VL-2B-Instruct",
+    "adaptation": "LoRA on attention projections",
+    "algorithm": "GRPO",
+    "num_generations_per_prompt": 8,
+    "learning_rate": 5e-6,
+    "temperature": 1.3,
+    "top_p": 1.0,
+    "training_seed": 42,
+    "outcome_reward": "1[accepted answer]",
+    "evidence_reward": "1[accepted answer] + 0.25[GT evidence page]"
+  },
+  "greedy_metric_definitions": {
+    "answer_correct": "The generated answer matches an accepted answer.",
+    "evidence_hit": "The generated evidence_page equals the GT evidence page.",
+    "grounded_correct": "Both answer_correct and evidence_hit are true."
+  },
+  "v1_clean": {
+    "split_contract": "Constructed from the official source train/test split with zero selected candidate-page overlap across post-training and evaluation.",
+    "task_contract": "English question; OCR-verifiable GT; 1 GT + 4 hard negatives; no selected negative OCR contains an accepted answer.",
+    "tasks": {
+      "post_training": 256,
+      "evaluation": 64
+    },
+    "grpo_training_steps": 256,
+    "greedy": {
+      "base": {
+        "answer_correct": {"count": 25, "total": 64, "rate": 0.390625},
+        "evidence_hit": {"count": 40, "total": 64, "rate": 0.625},
+        "grounded_correct": {"count": 17, "total": 64, "rate": 0.265625}
+      },
+      "outcome": {
+        "answer_correct": {"count": 26, "total": 64, "rate": 0.40625},
+        "evidence_hit": {"count": 40, "total": 64, "rate": 0.625},
+        "grounded_correct": {"count": 18, "total": 64, "rate": 0.28125}
+      },
+      "evidence": {
+        "answer_correct": {"count": 25, "total": 64, "rate": 0.390625},
+        "evidence_hit": {"count": 40, "total": 64, "rate": 0.625},
+        "grounded_correct": {"count": 17, "total": 64, "rate": 0.265625}
+      }
+    },
+    "training_signal": {
+      "informative_group_definition": "For one training prompt, reward_std > 0 across its 8 sampled rollouts; only then can group-relative GRPO form non-zero relative advantages.",
+      "outcome": {"count": 40, "total": 256, "fraction": 0.15625},
+      "evidence": {"count": 77, "total": 256, "fraction": 0.30078125}
+    }
+  },
+  "v2_answer_leak": {
+    "split_contract": "Constructed from the official source train/test split with zero selected candidate-page overlap across post-training and evaluation.",
+    "task_contract": "English question; OCR-verifiable GT; 1 GT + at least 1 non-GT answer-leak candidate + hard negatives; a selected leak ties or outranks GT BM25.",
+    "tasks": {
+      "post_training": 128,
+      "evaluation": 28
+    },
+    "grpo_training_steps": 128,
+    "greedy": {
+      "base": {
+        "answer_correct": {"count": 6, "total": 28, "rate": 0.21428571428571427},
+        "evidence_hit": {"count": 12, "total": 28, "rate": 0.42857142857142855},
+        "grounded_correct": {"count": 6, "total": 28, "rate": 0.21428571428571427}
+      },
+      "outcome": {
+        "answer_correct": {"count": 6, "total": 28, "rate": 0.21428571428571427},
+        "evidence_hit": {"count": 12, "total": 28, "rate": 0.42857142857142855},
+        "grounded_correct": {"count": 6, "total": 28, "rate": 0.21428571428571427}
+      },
+      "evidence": {
+        "answer_correct": {"count": 6, "total": 28, "rate": 0.21428571428571427},
+        "evidence_hit": {"count": 11, "total": 28, "rate": 0.39285714285714285},
+        "grounded_correct": {"count": 6, "total": 28, "rate": 0.21428571428571427}
+      }
+    },
+    "training_signal": {
+      "informative_group_definition": "For one training prompt, reward_std > 0 across its 8 sampled rollouts; only then can group-relative GRPO form non-zero relative advantages.",
+      "outcome": {"count": 21, "total": 128, "fraction": 0.1640625},
+      "evidence": {"count": 34, "total": 128, "fraction": 0.265625}
+    },
+    "teacher_forced_diagnostic_vs_base": {
+      "margin_definition": "log P(GT evidence_page | prompt, canonical answer) - log P(best answer-leak evidence_page | prompt, canonical answer)",
+      "outcome_gt_vs_best_leak_margin_delta": 0.04881,
+      "evidence_gt_vs_best_leak_margin_delta": 0.080905,
+      "caveat": "Conditioned on a canonical answer; not a joint generated-trajectory probability."
+    },
+    "fixed_seed_sampling": {
+      "joint_output_definition": "One sampled output contains a generated answer and evidence_page JSON pair after the fixed OCR controller.",
+      "tasks": 28,
+      "samples_per_task": 8,
+      "sample_seed_rule": "20261013 + task_index * 8 + sample_index",
+      "grounded_success_at_8_definition": "A task succeeds if at least one of its eight sampled joint outputs is grounded_correct.",
+      "correct_answer_with_leak_evidence_definition": "The generated answer is accepted while the selected evidence_page is a non-GT answer-leak candidate.",
+      "base": {
+        "answer_correct": {"count": 56, "total": 224, "rate": 0.25},
+        "evidence_hit": {"count": 93, "total": 224, "rate": 0.41517857142857145},
+        "grounded_correct": {"count": 53, "total": 224, "rate": 0.23660714285714285},
+        "grounded_success_at_8": {"count": 9, "total": 28, "rate": 0.32142857142857145},
+        "correct_answer_with_leak_evidence": {"count": 3, "total": 224, "rate": 0.013392857142857142}
+      },
+      "outcome": {
+        "answer_correct": {"count": 57, "total": 224, "rate": 0.2544642857142857},
+        "evidence_hit": {"count": 100, "total": 224, "rate": 0.44642857142857145},
+        "grounded_correct": {"count": 55, "total": 224, "rate": 0.24553571428571427},
+        "grounded_success_at_8": {"count": 9, "total": 28, "rate": 0.32142857142857145},
+        "correct_answer_with_leak_evidence": {"count": 2, "total": 224, "rate": 0.008928571428571428}
+      },
+      "evidence": {
+        "answer_correct": {"count": 58, "total": 224, "rate": 0.25892857142857145},
+        "evidence_hit": {"count": 98, "total": 224, "rate": 0.4375},
+        "grounded_correct": {"count": 56, "total": 224, "rate": 0.25},
+        "grounded_success_at_8": {"count": 9, "total": 28, "rate": 0.32142857142857145},
+        "correct_answer_with_leak_evidence": {"count": 2, "total": 224, "rate": 0.008928571428571428}
+      },
+      "task_block_bootstrap_grounded_delta_vs_base": {
+        "resampling_unit": "task",
+        "resamples": 20000,
+        "outcome": {
+          "bootstrap_seed": 20261013,
+          "mean_delta_percentage_points": 0.892857,
+          "ci95_percentage_points": [0.0, 2.232143]
+        },
+        "evidence": {
+          "bootstrap_seed": 20261014,
+          "mean_delta_percentage_points": 1.339286,
+          "ci95_percentage_points": [-0.892857, 3.571429]
+        },
+        "caveat": "Resamples tasks, not independent training seeds."
+      }
+    }
+  },
+  "supported_conclusion": "Evidence-aware reward increased the fraction of rollout groups with non-zero within-group reward variation in both one-seed controlled runs; V2 shows only a small, non-conclusive fixed-seed sampled policy shift and no improvement in Grounded Success@8 or greedy grounded performance.",
+  "unsupported_claims": [
+    "statistically reliable accuracy or grounding improvement",
+    "end-to-end learned tool-use improvement",
+    "domain-shift robustness",
+    "causal evidence that outcome-only GRPO preferentially exploits answer leaks"
+  ]
+}
